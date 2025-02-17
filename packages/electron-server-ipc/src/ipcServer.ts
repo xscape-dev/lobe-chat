@@ -45,7 +45,7 @@ export class ElectronIPCServer {
       });
 
       this.server.listen(this.socketPath, () => {
-        console.log(`Electron IPC server listening on ${this.socketPath}`);
+        console.log(`[ElectronIPCServer] Electron IPC server listening on ${this.socketPath}`);
 
         // 将套接字路径写入临时文件，供 Next.js 服务端读取
         const tempDir = os.tmpdir();
