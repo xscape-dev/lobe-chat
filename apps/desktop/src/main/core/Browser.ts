@@ -76,7 +76,6 @@ export default class Browser {
         console.log('[APP] Error page loaded');
 
         // Remove previously set retry listeners to avoid duplicates
-        ipcMain.removeAllListeners('retry-connection');
 
         // Set retry logic
         ipcMain.handle('retry-connection', async () => {
