@@ -3,6 +3,7 @@ const menu = {
     devPanel: '开发者面板',
     devTools: '开发者工具',
     forceReload: '强制重新加载',
+    openStore: '打开存储文件',
     reload: '重新加载',
     title: '开发',
   },

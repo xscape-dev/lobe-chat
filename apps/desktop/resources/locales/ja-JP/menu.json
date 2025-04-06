@@ -3,6 +3,7 @@
     "devPanel": "開発者パネル",
     "devTools": "開発者ツール",
     "forceReload": "強制再読み込み",
+    "openStore": "ストレージファイルを開く",
     "reload": "再読み込み",
     "title": "開発"
   },

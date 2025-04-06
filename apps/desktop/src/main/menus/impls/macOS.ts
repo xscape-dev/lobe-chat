@@ -196,6 +196,12 @@ export class MacOSMenu extends BaseMenuPlatform implements IMenuPlatform {
             },
             label: t('dev.devPanel'),
           },
+          {
+            click: async () => {
+              await this.app.storeManager.openInEditor();
+            },
+            label: t('dev.openStore'),
+          },
         ],
       });
     }
