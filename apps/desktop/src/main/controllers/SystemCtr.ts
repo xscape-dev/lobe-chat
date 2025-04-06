@@ -1,4 +1,4 @@
-import { systemPreferences } from 'electron';
+import { app, systemPreferences } from 'electron';
 import { macOS } from 'electron-is';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -17,6 +17,20 @@ export default class SystemService extends ControllerModule {
   checkAccessibilityForMacOS() {
     if (!macOS()) return;
     return systemPreferences.isTrustedAccessibilityClient(true);
+  }
+
+  /**
+   * 更新应用语言设置
+   */
+  @ipcClientEvent('updateLocale')
+  async updateLocale(locale: string) {
+    // 保存语言设置
+    this.app.storeManager.set('locale', locale);
+
+    // 更新i18n实例的语言
+    await this.app.i18n.changeLanguage(locale === 'auto' ? app.getLocale() : locale);
+
+    return { success: true };
   }
 
   @ipcServerEvent('getDatabasePath')

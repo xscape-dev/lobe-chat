@@ -20,9 +20,14 @@ export class I18nManager {
   async init(lang?: string) {
     if (this.initialized) return this.i18n;
 
-    const defaultLanguage = lang || app.getLocale() || 'en-US';
+    // 优先从参数获取语言，其次从存储中获取，最后使用系统语言
+    const storedLocale = this.app.storeManager.get('locale', 'auto') as string;
+    const defaultLanguage =
+      lang || (storedLocale !== 'auto' ? storedLocale : app.getLocale()) || 'en-US';
 
-    console.log(`[i18nManager] initializing i18n, app locale: ${defaultLanguage}`);
+    console.log(
+      `[i18nManager] initializing i18n, app locale: ${defaultLanguage}, stored locale: ${storedLocale}`,
+    );
 
     await this.i18n.init({
       defaultNS: 'menu',
@@ -39,12 +44,11 @@ export class I18nManager {
       partialBundledLanguages: true,
     });
 
-    // 预加载基础命名空间
-    await Promise.all(
-      ['menu', 'dialog', 'common'].map((ns) => this.loadNamespace(this.i18n.language, ns)),
-    );
+    console.log(`[i18nManager] i18n initialized, language: ${this.i18n.language}`);
 
-    console.log('[i18nManager] i18n initialized');
+    // 预加载基础命名空间
+    await this.loadLocale(this.i18n.language);
+
     this.initialized = true;
 
     this.refreshMainUI();
@@ -56,21 +60,6 @@ export class I18nManager {
   }
 
   /**
-   * 加载指定命名空间的翻译资源
-   */
-  async loadNamespace(lng: string, ns: string) {
-    try {
-      const resources = await loadResources(lng, ns);
-      // console.log(`[I18n] 加载翻译资源: ${lng}/${ns}`, resources);
-      this.i18n.addResourceBundle(lng, ns, resources, true, true);
-      return true;
-    } catch (error) {
-      console.error(`加载命名空间失败: ${lng}/${ns}`, error);
-      return false;
-    }
-  }
-
-  /**
    * 基础翻译函数
    */
   t = (key: string, options?: any) => {
@@ -78,7 +67,7 @@ export class I18nManager {
 
     // 如果翻译结果与键相同，可能表示未找到翻译
     if (result === key) {
-      console.warn(`[I18n] 未找到翻译: ${key}`);
+      console.warn(`[I18nManager] ${this.i18n.language} key: ${key} is not found`);
     }
 
     return result;
@@ -107,6 +96,13 @@ export class I18nManager {
   ns = (namespace: string) => this.createNamespacedT(namespace);
 
   /**
+   * 获取当前语言
+   */
+  getCurrentLanguage() {
+    return this.i18n.language;
+  }
+
+  /**
    * 切换应用语言
    * @param lng 目标语言
    */
@@ -120,21 +116,13 @@ export class I18nManager {
   }
 
   /**
-   * 获取当前语言
-   */
-  getCurrentLanguage() {
-    return this.i18n.language;
-  }
-
-  /**
    * 处理语言变化事件
    */
-  private handleLanguageChanged = async (lng: string) => {
+  private handleLanguageChanged = async (lang: string) => {
+    await this.loadLocale(lang);
+
     // 通知主进程其他部分刷新 UI
     this.refreshMainUI();
-
-    // 通知渲染进程语言已变化
-    this.notifyRendererProcess(lng);
   };
 
   /**
@@ -148,7 +136,8 @@ export class I18nManager {
    * 通知渲染进程语言已变化
    */
   private notifyRendererProcess(lng: string) {
-    console.log(lng);
+    console.log('[I18nManager] notifyRendererProcess', lng);
+
     // 向所有窗口发送语言变化事件
     // const windows = this.app.browserManager.windows;
     //
@@ -159,5 +148,25 @@ export class I18nManager {
     //     }
     //   });
     // }
+  }
+
+  private async loadLocale(language: string) {
+    // 预加载基础命名空间
+    await Promise.all(['menu', 'dialog', 'common'].map((ns) => this.loadNamespace(language, ns)));
+  }
+
+  /**
+   * 加载指定命名空间的翻译资源
+   */
+  private async loadNamespace(lng: string, ns: string) {
+    try {
+      const resources = await loadResources(lng, ns);
+      // console.log(`[I18n] 加载翻译资源: ${lng}/${ns}`, resources);
+      this.i18n.addResourceBundle(lng, ns, resources, true, true);
+      return true;
+    } catch (error) {
+      console.error(`加载命名空间失败: ${lng}/${ns}`, error);
+      return false;
+    }
   }
 }

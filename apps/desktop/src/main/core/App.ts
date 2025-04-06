@@ -13,6 +13,7 @@ import BrowserManager from './BrowserManager';
 import { I18nManager } from './I18nManager';
 import { IoCContainer } from './IoCContainer';
 import MenuManager from './MenuManager';
+import { StoreManager } from './StoreManager';
 
 export type IPCEventMap = Map<string, { controller: any; methodName: string }>;
 
@@ -26,6 +27,7 @@ export class App {
   browserManager: BrowserManager;
   menuManager: MenuManager;
   i18n: I18nManager;
+  storeManager: StoreManager;
 
   /**
    * whether app is in quiting
@@ -33,6 +35,9 @@ export class App {
   isQuiting: boolean = false;
 
   constructor() {
+    // 初始化存储管理器
+    this.storeManager = new StoreManager(this);
+
     // load controllers
     const controllers: IControlModule[] = importAll(
       (import.meta as any).glob('@/controllers/*Ctr.ts', { eager: true }),
