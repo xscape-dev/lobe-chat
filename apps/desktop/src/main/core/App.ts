@@ -32,7 +32,7 @@ type Class<T> = new (...args: any[]) => T;
 const importAll = (r: any) => Object.values(r).map((v: any) => v.default);
 
 export class App {
-  nextServerUrl = 'http://localhost:3010';
+  nextServerUrl = 'http://localhost:3015';
 
   browserManager: BrowserManager;
   menuManager: MenuManager;

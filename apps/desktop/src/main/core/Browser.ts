@@ -190,7 +190,7 @@ export default class Browser {
       console.log(`[Browser] Window close event: ${this.identifier}`);
 
       // If in application quitting process, allow window to be closed
-      if (global.isAppQuitting) {
+      if (this.app.isQuiting) {
         // Need to clean up intercept handler
         this.stopInterceptHandler?.();
         return;

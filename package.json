@@ -50,6 +50,7 @@
     "desktop:build-next": "npm run build:electron",
     "desktop:prepare-dist": "tsx scripts/electronWorkflow/moveNextStandalone.ts",
     "dev": "next dev --turbopack -p 3010",
+    "dev:electron": "next dev --turbopack -p 3015",
     "docs:i18n": "lobe-i18n md && npm run lint:md && npm run lint:mdx",
     "docs:seo": "lobe-seo && npm run lint:mdx",
     "i18n": "npm run workflow:i18n && lobe-i18n",

@@ -153,7 +153,7 @@ jobs:
         if: runner.os == 'macOS'
         run: npm run desktop:build
         env:
-          APP_URL: http://localhost:3010
+          APP_URL: http://localhost:3015
           DATABASE_URL: 'postgresql://postgres@localhost:5432/postgres'
           # 默认添加一个加密 SECRET
           KEY_VAULTS_SECRET: 'oLXWIiR/AKF+rWaqy9lHkrYgzpATbW3CtJp3UfkVgpE='
@@ -171,7 +171,7 @@ jobs:
         if: runner.os != 'macOS'
         run: npm run desktop:build
         env:
-          APP_URL: http://localhost:3010
+          APP_URL: http://localhost:3015
           DATABASE_URL: 'postgresql://postgres@localhost:5432/postgres'
           KEY_VAULTS_SECRET: 'oLXWIiR/AKF+rWaqy9lHkrYgzpATbW3CtJp3UfkVgpE='
 
@@ -324,5 +324,5 @@ jobs:
               version: "${{ needs.version.outputs.version }}",
               tag: "pr-build-${{ github.event.pull_request.number }}-${{ github.sha }}"
             });
-            
+
             console.log(`评论状态: ${result.updated ? '已更新' : '已创建'}, ID: ${result.id}`);

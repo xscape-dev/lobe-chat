@@ -155,9 +155,17 @@ export function createHandler({
   standaloneDir: string;
 }) {
   assert(standaloneDir, 'standaloneDir is required');
-  if (!isDev) assert(fs.existsSync(standaloneDir), 'standaloneDir does not exist');
   assert(protocol, 'protocol is required');
 
+  if (isDev) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const createInterceptor = (_: { enabled?: boolean; session: Session }) => {
+      return function stopIntercept() {};
+    };
+    return { createInterceptor };
+  }
+
+  assert(fs.existsSync(standaloneDir), 'standaloneDir does not exist');
   const next = require(resolve.sync('next', { basedir: standaloneDir }));
 
   // @see https://github.com/vercel/next.js/issues/64031#issuecomment-2078708340
