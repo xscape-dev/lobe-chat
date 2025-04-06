@@ -1,3 +1,4 @@
+import { ElectronIPCEventHandler, ElectronIPCServer } from '@lobechat/electron-server-ipc';
 import { Session, app, ipcMain, protocol } from 'electron';
 import { macOS, windows } from 'electron-is';
 import { join } from 'node:path';
@@ -10,23 +11,11 @@ import { createHandler } from '@/utils/next-electron-rsc';
 
 import BrowserManager from './BrowserManager';
 import { I18nManager } from './I18nManager';
-import { initIPCServer } from './IPCServer';
 import { IoCContainer } from './IoCContainer';
 import MenuManager from './MenuManager';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var isAppQuitting: boolean;
+export type IPCEventMap = Map<string, { controller: any; methodName: string }>;
 
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace NodeJS {
-    interface Global {
-      isAppQuitting: boolean;
-    }
-  }
-}
-
-export type IPCClientEventMap = Map<string, { controller: any; methodName: string }>;
 type Class<T> = new (...args: any[]) => T;
 
 const importAll = (r: any) => Object.values(r).map((v: any) => v.default);
@@ -37,6 +26,11 @@ export class App {
   browserManager: BrowserManager;
   menuManager: MenuManager;
   i18n: I18nManager;
+
+  /**
+   * whether app is in quiting
+   */
+  isQuiting: boolean = false;
 
   constructor() {
     // load controllers
@@ -53,18 +47,7 @@ export class App {
 
     services.forEach((service) => this.addService(service));
 
-    // 批量注册 controller 中 event 事件 供 render 端消费
-    this.ipcClientEventMap.forEach((serviceInfo, key) => {
-      const { controller, methodName } = serviceInfo;
-
-      ipcMain.handle(key, async (e, ...data) => {
-        try {
-          return await controller[methodName](...data);
-        } catch (error) {
-          return { error: error.message };
-        }
-      });
-    });
+    this.initializeIPCEvents();
 
     this.i18n = new I18nManager(this);
     this.browserManager = new BrowserManager(this);
@@ -82,24 +65,24 @@ export class App {
 
     this.initDevBranding();
 
-    // 初始化 i18n
-    await this.i18n.init();
-
-    await initIPCServer();
-
     //  ==============
-    this.menuManager.initialize();
+    await this.ipcServer.start();
 
     await app.whenReady();
+
+    // 初始化 i18n. PS: app.getLocale() 必须在 app.whenReady() 之后调用才能拿到正确的值
+    await this.i18n.init();
+
+    this.menuManager.initialize();
 
     this.browserManager.initializeBrowsers();
 
     // 添加全局应用退出状态
-    global.isAppQuitting = false;
+    this.isQuiting = false;
 
     // 监听 before-quit 事件，设置退出标志
     app.on('before-quit', () => {
-      global.isAppQuitting = true;
+      this.isQuiting = true;
     });
 
     app.on('window-all-closed', () => {
@@ -130,10 +113,12 @@ export class App {
    */
   private services = new WeakMap();
 
+  private ipcServer: ElectronIPCServer;
   /**
    * webview 层 dispatch 来的事件表
    */
-  private ipcClientEventMap: IPCClientEventMap = new Map();
+  private ipcClientEventMap: IPCEventMap = new Map();
+  private ipcServerEventMap: IPCEventMap = new Map();
 
   /**
    * use in next router interceptor in prod browser render
@@ -145,11 +130,21 @@ export class App {
     this.controllers.set(ControllerClass, controller);
 
     IoCContainer.controllers.get(ControllerClass)?.forEach((event) => {
-      // 将 event 装饰器中的对象全部存到 ipcClientEventMap 中
-      this.ipcClientEventMap.set(event.name, {
-        controller,
-        methodName: event.methodName,
-      });
+      if (event.mode === 'client') {
+        // 将 event 装饰器中的对象全部存到 ipcClientEventMap 中
+        this.ipcClientEventMap.set(event.name, {
+          controller,
+          methodName: event.methodName,
+        });
+      }
+
+      if (event.mode === 'server') {
+        // 将 event 装饰器中的对象全部存到 ipcServerEventMap 中
+        this.ipcServerEventMap.set(event.name, {
+          controller,
+          methodName: event.methodName,
+        });
+      }
     });
   };
 
@@ -179,5 +174,37 @@ export class App {
     );
 
     this.nextInterceptor = handler.createInterceptor;
+  }
+
+  private initializeIPCEvents() {
+    // 批量注册 controller 中 client event 事件 供 render 端消费
+    this.ipcClientEventMap.forEach((eventInfo, key) => {
+      const { controller, methodName } = eventInfo;
+
+      ipcMain.handle(key, async (e, ...data) => {
+        try {
+          return await controller[methodName](...data);
+        } catch (error) {
+          return { error: error.message };
+        }
+      });
+    });
+
+    // 批量注册 controller 中的 server event 事件 供 next server 端消费
+    const ipcServerEvents = {} as ElectronIPCEventHandler;
+
+    this.ipcServerEventMap.forEach((eventInfo, key) => {
+      const { controller, methodName } = eventInfo;
+
+      ipcServerEvents[key] = async (payload) => {
+        try {
+          return await controller[methodName](payload);
+        } catch (error) {
+          return { error: error.message };
+        }
+      };
+    });
+
+    this.ipcServer = new ElectronIPCServer(ipcServerEvents);
   }
 }

@@ -20,11 +20,9 @@ export class I18nManager {
   async init(lang?: string) {
     if (this.initialized) return this.i18n;
 
-    // 使用系统语言或默认语言
-    console.log('[i18nManager]', app.getLocale());
     const defaultLanguage = lang || app.getLocale() || 'en-US';
 
-    // console.log(`[I18n] 初始化 i18n, 语言: ${defaultLanguage}`);
+    console.log(`[i18nManager] initializing i18n, app locale: ${defaultLanguage}`);
 
     await this.i18n.init({
       defaultNS: 'menu',
@@ -46,7 +44,7 @@ export class I18nManager {
       ['menu', 'dialog', 'common'].map((ns) => this.loadNamespace(this.i18n.language, ns)),
     );
 
-    console.log('[i18nManager] i18n initialized, app locale:', this.i18n.language);
+    console.log('[i18nManager] i18n initialized');
     this.initialized = true;
 
     this.refreshMainUI();
@@ -109,13 +107,16 @@ export class I18nManager {
   ns = (namespace: string) => this.createNamespacedT(namespace);
 
   /**
-   * 切换语言
+   * 切换应用语言
+   * @param lng 目标语言
    */
-  async changeLanguage(lang: string) {
-    // 先加载基础命名空间，再切换语言
-    await Promise.all(['menu', 'dialog', 'common'].map((ns) => this.loadNamespace(lang, ns)));
+  public async changeLanguage(lng: string): Promise<void> {
+    if (!this.initialized) {
+      await this.init();
+    }
 
-    return this.i18n.changeLanguage(lang);
+    await this.i18n.changeLanguage(lng);
+    // 语言变化事件会触发handleLanguageChanged
   }
 
   /**

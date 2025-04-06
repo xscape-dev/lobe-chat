@@ -64,6 +64,7 @@ function updateVersion() {
 
     // 更新版本号
     packageJson.version = version;
+    packageJson.productName = 'LobeHub';
 
     // 如果是 PR 构建，设置为 Nightly 版本
     if (isPr) {
