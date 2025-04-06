@@ -7,10 +7,12 @@ const config = {
   appImage: {
     artifactName: '${productName}-${version}.${ext}',
   },
-  asar: false,
-  // TODO: 研究下怎么样可以做成 asar 的模式
-  // asar: { smartUnpack: false },
-  // asarUnpack: ['dist/next'],
+  asar: true,
+  // asarUnpack: [
+  //   'dist/next/.next/**/*',
+  //   // 'dist/next/node_modules/**/*',
+  //   // 'dist/next/public/**/*'
+  // ],
   directories: {
     buildResources: 'build',
     output: 'release',
